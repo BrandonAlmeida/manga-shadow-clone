@@ -79,7 +79,7 @@ export function ReaderPage() {
   const [zoomLevel, setZoomLevel] = useState(() => {
     try {
       const storedZoomLevel = Number(localStorage.getItem("reader:zoom-level"));
-      if (Number.isFinite(storedZoomLevel) && storedZoomLevel >= 50 && storedZoomLevel <= 200) {
+      if (Number.isFinite(storedZoomLevel) && storedZoomLevel >= 0 && storedZoomLevel <= 300) {
         return storedZoomLevel;
       }
       return 100;
@@ -1088,8 +1088,8 @@ export function ReaderPage() {
                 window.scrollTo({ top: 0, behavior: "smooth" });
                 setIsReaderActionsOpen(false);
               }}
-              onZoomIn={() => setZoomLevel((prev) => Math.min(prev + 10, 200))}
-              onZoomOut={() => setZoomLevel((prev) => Math.max(prev - 10, 50))}
+              onZoomIn={() => setZoomLevel((prev) => Math.min(prev + 10, 300))}
+              onZoomOut={() => setZoomLevel((prev) => Math.max(prev - 10, 0))}
             />
           </>
         ) : null}

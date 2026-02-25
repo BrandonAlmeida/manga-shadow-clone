@@ -121,7 +121,7 @@ export function ReaderBar({
             type="button"
             title="Diminuir zoom"
             onClick={onZoomOut}
-            disabled={zoomLevel <= 50}
+            disabled={zoomLevel <= 0}
           >
             <MdZoomOut size={18} />
           </button>
@@ -133,7 +133,7 @@ export function ReaderBar({
             type="button"
             title="Aumentar zoom"
             onClick={onZoomIn}
-            disabled={zoomLevel >= 200}
+            disabled={zoomLevel >= 300}
           >
             <MdZoomIn size={18} />
           </button>
