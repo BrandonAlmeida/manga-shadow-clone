@@ -1,0 +1,60 @@
+@config "../tailwind.config.ts";
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Space Grotesk", "Avenir Next", sans-serif;
+  --font-serif: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
+}
+
+@layer base {
+  body {
+    @apply min-h-screen min-w-80 bg-neutral-100 text-neutral-900 antialiased transition-colors;
+    font-family: var(--font-sans);
+  }
+
+  html.dark body {
+    @apply bg-neutral-950 text-neutral-100;
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+    border-radius: 0 !important;
+  }
+
+  html.dark * {
+    scrollbar-color: rgba(163, 163, 163, 0.42) transparent;
+  }
+}
+
+@layer components {
+  .dashboard-theme {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .dashboard-theme::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.22;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cpath d='M56 1H0M1 56V0' stroke='%23334155' stroke-width='1' fill='none'/%3E%3C/svg%3E");
+    background-size: 56px 56px;
+  }
+
+  .dashboard-theme::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+  }
+}

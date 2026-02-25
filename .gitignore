@@ -1,0 +1,45 @@
+# Frontend dependencies
+frontend/node_modules/
+
+# Frontend build outputs
+frontend/dist/
+frontend/dist-ssr/
+frontend/coverage/
+frontend/release/
+frontend/*.tsbuildinfo
+
+# Frontend tooling cache
+frontend/.vite/
+
+# Frontend environment and local overrides
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+frontend/*.local
+
+# Frontend logs
+frontend/logs/
+frontend/*.log
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+frontend/lerna-debug.log*
+
+# Editor and OS files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+downloads/
+exports/
+backend/
+.venv/
+AGENTS.md
