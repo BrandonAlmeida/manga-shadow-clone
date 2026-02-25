@@ -16,6 +16,7 @@ protocol.registerSchemesAsPrivileged([
   },
 ]);
 
+const LOCAL_SOURCES = new Set(["asuracomic", "mangalivre", "mangalivreblog", "mangastop", "userlocal"]);
 const IMAGE_EXTENSIONS = new Set([".webp", ".jpg", ".jpeg", ".png"]);
 const COLLATOR = new Intl.Collator("pt-BR", { numeric: true, sensitivity: "base" });
 const SETTINGS_FILE_NAME = "settings.json";
@@ -362,7 +363,7 @@ async function listMangas(libraryDir) {
   const rootDirectories = await readDirectories(libraryDir);
 
   for (const rootDirectory of rootDirectories) {
-    if (!isValidSource(rootDirectory)) {
+    if (!LOCAL_SOURCES.has(rootDirectory)) {
       continue;
     }
 
@@ -374,19 +375,6 @@ async function listMangas(libraryDir) {
   }
 
   return sortValues([...mangas]);
-}
-
-function isValidSource(source) {
-  if (typeof source !== "string") {
-    return false;
-  }
-
-  const normalizedSource = source.trim();
-  if (!normalizedSource || normalizedSource.startsWith(".")) {
-    return false;
-  }
-
-  return /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/.test(normalizedSource);
 }
 
 async function listDownloadedChapterIds(mangaPath) {
@@ -830,9 +818,9 @@ function ensureSource(rawSource) {
     throw new Error("Informe a fonte (source).");
   }
 
-  const source = rawSource.trim();
-  if (!isValidSource(source)) {
-    throw new Error("Fonte local inválida.");
+  const source = rawSource.trim().toLowerCase();
+  if (!LOCAL_SOURCES.has(source)) {
+    throw new Error("Fonte local invalida.");
   }
 
   return source;

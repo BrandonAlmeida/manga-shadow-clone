@@ -50,6 +50,18 @@ const electronAPI = {
       page,
       total,
     }),
+  getUpdaterState: () => ipcRenderer.invoke("updater:get-state"),
+  checkForUpdates: () => ipcRenderer.invoke("updater:check-for-updates"),
+  installUpdate: () => ipcRenderer.invoke("updater:install-update"),
+  onUpdaterStateChange: (listener) => {
+    const wrappedListener = (_event, payload) => {
+      listener(payload);
+    };
+    ipcRenderer.on("updater:state-changed", wrappedListener);
+    return () => {
+      ipcRenderer.removeListener("updater:state-changed", wrappedListener);
+    };
+  },
 };
 
 contextBridge.exposeInMainWorld("electronAPI", electronAPI);

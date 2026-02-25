@@ -2,7 +2,7 @@
   "name": "frontend",
   "main": "electron/main.mjs",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,20 +13,44 @@
     "electron:dev": "concurrently -k -n vite,electron -c cyan,magenta \"vite --host 127.0.0.1 --port 5173 --strictPort\" \"wait-on tcp:127.0.0.1:5173 && ELECTRON_DEV_SERVER_URL=http://127.0.0.1:5173 electron ./electron/main.mjs\"",
     "electron:dev:attach": "ELECTRON_DEV_SERVER_URL=http://127.0.0.1:5173 electron ./electron/main.mjs",
     "electron:icon:mac": "bash ./scripts/generate-mac-icon.sh",
-    "electron:dist": "npm run build && npm run electron:icon:mac && npx electron-builder --mac"
+    "electron:dist": "npm run build && npm run electron:icon:mac && npx electron-builder --mac",
+    "electron:dist:publish": "npm run build && npm run electron:icon:mac && npx electron-builder --mac --publish always",
+    "electron:dist:mac": "npm run build && npm run electron:icon:mac && npx electron-builder --mac dmg zip",
+    "electron:dist:win": "npm run build && npx electron-builder --win nsis",
+    "electron:dist:linux": "npm run build && npx electron-builder --linux AppImage",
+    "electron:dist:all:publish": "npm run build && npm run electron:icon:mac && npx electron-builder --mac dmg zip --win nsis --linux AppImage --publish always"
   },
   "build": {
     "appId": "com.mangashadow.clone",
     "productName": "Manga Shadow",
+    "artifactName": "Manga-Shadow-${version}-${os}-${arch}.${ext}",
     "asar": true,
     "directories": {
       "output": "release",
       "buildResources": "build"
     },
     "files": [
-      "dist/**",
-      "electron/**",
-      "public/**",
+      {
+        "from": "dist",
+        "to": "dist",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "electron",
+        "to": "electron",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "public",
+        "to": "public",
+        "filter": [
+          "**/*"
+        ]
+      },
       "package.json"
     ],
     "mac": {
@@ -36,10 +60,30 @@
         "zip"
       ],
       "icon": "build/icon.icns"
-    }
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Utility"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "BrandonAlmeida",
+        "repo": "manga-shadow-clone",
+        "releaseType": "release"
+      }
+    ]
   },
   "dependencies": {
     "@radix-ui/react-tooltip": "^1.2.8",
+    "electron-updater": "^6.6.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-icons": "^5.5.0",

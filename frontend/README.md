@@ -71,3 +71,21 @@ export default defineConfig([
   },
 ])
 ```
+
+## Instalacao no macOS (Apple could not verify)
+
+Quando o app nao e notarizado pela Apple, o macOS pode exibir o alerta:
+
+`Apple could not verify "Manga Shadow" is free of malware...`
+
+Para abrir normalmente:
+
+1. No Finder, clique com o botao direito no app e selecione **Open**.
+2. Confirme em **Open** novamente no alerta.
+3. Se necessario, acesse **System Settings > Privacy & Security** e clique em **Open Anyway**.
+
+Opcional (via terminal, para remover quarentena do app instalado):
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Manga Shadow.app"
+```

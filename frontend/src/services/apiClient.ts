@@ -67,6 +67,17 @@ async function handleElectronGet<T>(url: string): Promise<T> {
     return { continue_reading: continueReading } as T;
   }
 
+  if (pathname === "/api/app/update") {
+    const updateState = await electronApi.getUpdaterState();
+    return {
+      status: updateState.status,
+      current_version: updateState.currentVersion,
+      latest_version: updateState.latestVersion,
+      progress_percent: updateState.progressPercent,
+      message: updateState.message,
+    } as T;
+  }
+
   if (
     segments.length === 4
     && segments[0] === "api"
@@ -166,6 +177,21 @@ async function handleElectronPost<T, B = unknown>(url: string, body?: B): Promis
       status: "ok",
       downloads_dir: nextLibraryDir,
     } as T;
+  }
+
+  if (pathname === "/api/app/update/check") {
+    const updateState = await electronApi.checkForUpdates();
+    return {
+      status: updateState.status,
+      current_version: updateState.currentVersion,
+      latest_version: updateState.latestVersion,
+      progress_percent: updateState.progressPercent,
+      message: updateState.message,
+    } as T;
+  }
+
+  if (pathname === "/api/app/update/install") {
+    return (await electronApi.installUpdate()) as T;
   }
 
   if (

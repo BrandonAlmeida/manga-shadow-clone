@@ -107,6 +107,28 @@ export interface OpenDownloadsDirResponse {
   downloads_dir: string;
 }
 
+export type UpdateStatus =
+  | "idle"
+  | "unsupported"
+  | "checking"
+  | "available"
+  | "downloading"
+  | "downloaded"
+  | "up-to-date"
+  | "error";
+
+export interface AppUpdateStateResponse {
+  status: UpdateStatus;
+  current_version: string;
+  latest_version: string | null;
+  progress_percent: number | null;
+  message: string;
+}
+
+export interface AppUpdateInstallResponse {
+  status: "installing";
+}
+
 export type RemoteSource = "mangalivre" | "mangastop" | "mangalivreblog" | "asuracomic";
 
 export interface RemoteManga {

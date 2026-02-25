@@ -66,6 +66,28 @@ export interface ElectronContinueReadingResult {
   updated_at: string;
 }
 
+export type ElectronUpdaterStatus =
+  | "idle"
+  | "unsupported"
+  | "checking"
+  | "available"
+  | "downloading"
+  | "downloaded"
+  | "up-to-date"
+  | "error";
+
+export interface ElectronUpdaterState {
+  status: ElectronUpdaterStatus;
+  currentVersion: string;
+  latestVersion: string | null;
+  progressPercent: number | null;
+  message: string;
+}
+
+export interface ElectronUpdaterInstallResult {
+  status: "installing";
+}
+
 export interface ElectronBridge {
   getLibraryDir: () => Promise<string>;
   setLibraryDir: (libraryDir: string) => Promise<string>;
@@ -92,4 +114,8 @@ export interface ElectronBridge {
     page: number,
     total: number,
   ) => Promise<ElectronContinueReadingResult>;
+  getUpdaterState: () => Promise<ElectronUpdaterState>;
+  checkForUpdates: () => Promise<ElectronUpdaterState>;
+  installUpdate: () => Promise<ElectronUpdaterInstallResult>;
+  onUpdaterStateChange: (listener: (payload: ElectronUpdaterState) => void) => () => void;
 }
