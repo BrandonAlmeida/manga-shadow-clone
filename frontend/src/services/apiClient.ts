@@ -74,6 +74,7 @@ async function handleElectronGet<T>(url: string): Promise<T> {
       current_version: updateState.currentVersion,
       latest_version: updateState.latestVersion,
       progress_percent: updateState.progressPercent,
+      release_url: updateState.releaseUrl,
       message: updateState.message,
     } as T;
   }
@@ -186,12 +187,13 @@ async function handleElectronPost<T, B = unknown>(url: string, body?: B): Promis
       current_version: updateState.currentVersion,
       latest_version: updateState.latestVersion,
       progress_percent: updateState.progressPercent,
+      release_url: updateState.releaseUrl,
       message: updateState.message,
     } as T;
   }
 
-  if (pathname === "/api/app/update/install") {
-    return (await electronApi.installUpdate()) as T;
+  if (pathname === "/api/app/update/open-release") {
+    return (await electronApi.openReleasePage()) as T;
   }
 
   if (

@@ -122,11 +122,13 @@ export interface AppUpdateStateResponse {
   current_version: string;
   latest_version: string | null;
   progress_percent: number | null;
+  release_url: string | null;
   message: string;
 }
 
-export interface AppUpdateInstallResponse {
-  status: "installing";
+export interface AppUpdateOpenReleaseResponse {
+  status: "ok";
+  url: string;
 }
 
 export type RemoteSource = "mangalivre" | "mangastop" | "mangalivreblog" | "asuracomic";

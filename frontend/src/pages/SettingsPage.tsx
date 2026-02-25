@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MdFolderOpen, MdOpenInNew, MdRefresh, MdSave, MdSystemUpdateAlt } from "react-icons/md";
+import { MdFolderOpen, MdOpenInNew, MdRefresh, MdSave } from "react-icons/md";
 import { getSourceLabel } from "../constants/sourceMetadata";
 import { toDisplayName } from "../lib/utils";
 import { fetchJson, postJson } from "../services/apiClient";
 import type {
-  AppUpdateInstallResponse,
+  AppUpdateOpenReleaseResponse,
   AppUpdateStateResponse,
   DownloadsDirResponse,
   LocalMangasResponse,
@@ -41,7 +41,7 @@ export function SettingsPage() {
   const [isOpening, setIsOpening] = useState(false);
   const [updateState, setUpdateState] = useState<AppUpdateStateResponse | null>(null);
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
-  const [isInstallingUpdate, setIsInstallingUpdate] = useState(false);
+  const [isOpeningReleasePage, setIsOpeningReleasePage] = useState(false);
   const statusMessageTimeoutRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
 
   const clearStatusMessageTimeout = useCallback(() => {
@@ -163,6 +163,7 @@ export function SettingsPage() {
         current_version: payload.currentVersion,
         latest_version: payload.latestVersion,
         progress_percent: payload.progressPercent,
+        release_url: payload.releaseUrl,
         message: payload.message,
       });
     });
@@ -268,23 +269,24 @@ export function SettingsPage() {
     }
   }, [applyUpdaterState, isElectronRuntime]);
 
-  const installUpdate = useCallback(async () => {
+  const openReleasePage = useCallback(async () => {
     if (!isElectronRuntime) {
-      setStatusMessage("Atualizações estão disponíveis apenas no aplicativo Electron.");
+      setStatusMessage("As atualizações estão disponíveis apenas no aplicativo Electron.");
       return;
     }
 
-    setIsInstallingUpdate(true);
+    setIsOpeningReleasePage(true);
 
     try {
-      await postJson<AppUpdateInstallResponse>("/api/app/update/install");
-      setStatusMessage("Atualização iniciada. O aplicativo será reiniciado para concluir a instalação.");
+      await postJson<AppUpdateOpenReleaseResponse>("/api/app/update/open-release");
+      showTemporaryStatusMessage("Página da nova versão aberta no navegador.");
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Falha ao instalar atualização.";
+      const message = error instanceof Error ? error.message : "Falha ao abrir a página da release.";
       setStatusMessage(message);
-      setIsInstallingUpdate(false);
+    } finally {
+      setIsOpeningReleasePage(false);
     }
-  }, [isElectronRuntime]);
+  }, [isElectronRuntime, showTemporaryStatusMessage]);
 
   const mangaPreview = useMemo(() => {
     const normalizedMangas = mangaKeys
@@ -315,7 +317,7 @@ export function SettingsPage() {
     return updateState.message || "Nenhum status de atualização disponível.";
   }, [updateState]);
 
-  const canInstallUpdate = updateState?.status === "downloaded" && !isInstallingUpdate;
+  const canOpenReleasePage = Boolean(updateState?.release_url) && !isOpeningReleasePage;
 
   return (
     <main className="mx-auto grid w-full gap-6 px-4 py-6 pb-16 md:px-6 md:py-8">
@@ -436,7 +438,7 @@ export function SettingsPage() {
           <div className="flex flex-wrap gap-2">
             <Button
               variant="secondary"
-              disabled={!isElectronRuntime || isCheckingUpdates || isInstallingUpdate}
+              disabled={!isElectronRuntime || isCheckingUpdates || isOpeningReleasePage}
               onClick={() => {
                 void checkForUpdates();
               }}
@@ -446,12 +448,12 @@ export function SettingsPage() {
 
             <Button
               variant="secondary"
-              disabled={!canInstallUpdate}
+              disabled={!canOpenReleasePage}
               onClick={() => {
-                void installUpdate();
+                void openReleasePage();
               }}
             >
-              <MdSystemUpdateAlt className="h-4 w-4" />
+              <MdOpenInNew className="h-4 w-4" />
             </Button>
           </div>
         </article>

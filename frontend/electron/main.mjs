@@ -1,5 +1,4 @@
 import { app, BrowserWindow, dialog, ipcMain, nativeImage, net, protocol, shell } from "electron";
-import electronUpdater from "electron-updater";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -27,8 +26,13 @@ const FRONTEND_DIST_INDEX = path.join(FRONTEND_ROOT, "dist", "index.html");
 const APP_NAME = "Manga Shadow";
 const APP_WINDOW_TITLE = "Manga Shadow Clone";
 const APP_ICON_PATH = path.join(FRONTEND_ROOT, "public", "favicon.svg");
-const { autoUpdater } = electronUpdater;
 const UPDATER_STATE_CHANNEL = "updater:state-changed";
+const GITHUB_OWNER = "BrandonAlmeida";
+const GITHUB_REPO = "manga-shadow-clone";
+const GITHUB_RELEASES_LATEST_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
+const GITHUB_LATEST_RELEASE_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
+const UPDATE_CHECK_INITIAL_DELAY_MS = 2500;
+const UPDATE_CHECK_COOLDOWN_MS = 5 * 60 * 1000;
 
 const UPDATER_STATUS = {
   idle: "idle",
@@ -42,13 +46,15 @@ const UPDATER_STATUS = {
 };
 
 let mainWindowReference = null;
-let hasConfiguredAutoUpdater = false;
+let hasConfiguredUpdaterService = false;
+let lastUpdateCheckAt = 0;
 
 let updaterState = {
   status: UPDATER_STATUS.idle,
   currentVersion: app.getVersion(),
   latestVersion: null,
   progressPercent: null,
+  releaseUrl: GITHUB_RELEASES_LATEST_URL,
   message: "",
 };
 
@@ -81,103 +87,126 @@ function formatUpdateError(error) {
 }
 
 async function checkForAppUpdates() {
-  if (!app.isPackaged) {
-    return setUpdaterState({
-      status: UPDATER_STATUS.unsupported,
-      latestVersion: null,
-      progressPercent: null,
-      message: "Atualizacoes automaticas disponiveis apenas no app empacotado.",
-    });
-  }
+  setUpdaterState({
+    status: UPDATER_STATUS.checking,
+    progressPercent: null,
+    message: "Verificando novas versões...",
+  });
 
   try {
-    await autoUpdater.checkForUpdates();
-    return getUpdaterStateSnapshot();
+    const response = await net.fetch(GITHUB_LATEST_RELEASE_API_URL, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        "User-Agent": "manga-shadow-clone-updater",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Falha ao consultar release no GitHub (HTTP ${response.status}).`);
+    }
+
+    const releasePayload = await response.json();
+    const latestTag = String(releasePayload?.tag_name ?? "").trim();
+    const latestVersion = normalizeVersion(latestTag);
+    const releaseUrl = String(releasePayload?.html_url ?? GITHUB_RELEASES_LATEST_URL).trim() || GITHUB_RELEASES_LATEST_URL;
+
+    if (!latestVersion) {
+      throw new Error("Nao foi possivel identificar a versão da release mais recente.");
+    }
+
+    const currentVersion = normalizeVersion(app.getVersion());
+    if (compareVersions(latestVersion, currentVersion) > 0) {
+      return setUpdaterState({
+        status: UPDATER_STATUS.available,
+        latestVersion,
+        progressPercent: null,
+        releaseUrl,
+        message: `Nova versão ${latestVersion} disponível. Clique para baixar no GitHub.`,
+      });
+    }
+
+    return setUpdaterState({
+      status: UPDATER_STATUS.upToDate,
+      latestVersion,
+      progressPercent: null,
+      releaseUrl,
+      message: "Você já está na versão mais recente.",
+    });
   } catch (error) {
     const message = formatUpdateError(error);
     return setUpdaterState({
       status: UPDATER_STATUS.error,
       progressPercent: null,
+      releaseUrl: GITHUB_RELEASES_LATEST_URL,
       message,
     });
   }
 }
 
-function configureAutoUpdater() {
-  if (hasConfiguredAutoUpdater) {
-    return;
-  }
-  hasConfiguredAutoUpdater = true;
-
-  if (!app.isPackaged) {
-    setUpdaterState({
-      status: UPDATER_STATUS.unsupported,
-      latestVersion: null,
-      progressPercent: null,
-      message: "Atualizacoes automaticas disponiveis apenas no app empacotado.",
-    });
-    return;
+function normalizeVersion(version) {
+  if (typeof version !== "string") {
+    return "";
   }
 
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
-  autoUpdater.on("checking-for-update", () => {
-    setUpdaterState({
-      status: UPDATER_STATUS.checking,
-      progressPercent: null,
-      message: "Buscando nova versao...",
-    });
-  });
+  return version
+    .trim()
+    .replace(/^v/i, "")
+    .split("-")[0]
+    .trim();
+}
 
-  autoUpdater.on("update-available", (info) => {
-    setUpdaterState({
-      status: UPDATER_STATUS.available,
-      latestVersion: info?.version ?? null,
-      progressPercent: null,
-      message: "Nova versao encontrada. Baixando automaticamente.",
-    });
-  });
+function compareVersions(firstVersion, secondVersion) {
+  const firstParts = firstVersion.split(".").map((part) => Number.parseInt(part, 10));
+  const secondParts = secondVersion.split(".").map((part) => Number.parseInt(part, 10));
+  const maxLength = Math.max(firstParts.length, secondParts.length);
 
-  autoUpdater.on("update-not-available", () => {
-    setUpdaterState({
-      status: UPDATER_STATUS.upToDate,
-      latestVersion: null,
-      progressPercent: null,
-      message: "Voce ja esta na versao mais recente.",
-    });
-  });
+  for (let index = 0; index < maxLength; index += 1) {
+    const firstValue = Number.isFinite(firstParts[index]) ? firstParts[index] : 0;
+    const secondValue = Number.isFinite(secondParts[index]) ? secondParts[index] : 0;
 
-  autoUpdater.on("download-progress", (progress) => {
-    const normalizedPercent = Number.isFinite(progress?.percent) ? Math.min(100, Math.max(0, progress.percent)) : 0;
+    if (firstValue > secondValue) {
+      return 1;
+    }
 
-    setUpdaterState({
-      status: UPDATER_STATUS.downloading,
-      progressPercent: normalizedPercent,
-      message: `Baixando atualizacao (${Math.round(normalizedPercent)}%).`,
-    });
-  });
+    if (firstValue < secondValue) {
+      return -1;
+    }
+  }
 
-  autoUpdater.on("update-downloaded", (info) => {
-    setUpdaterState({
-      status: UPDATER_STATUS.downloaded,
-      latestVersion: info?.version ?? updaterState.latestVersion,
-      progressPercent: 100,
-      message: "Atualizacao pronta. Reinicie para instalar.",
-    });
-  });
+  return 0;
+}
 
-  autoUpdater.on("error", (error) => {
-    const message = formatUpdateError(error);
-    setUpdaterState({
-      status: UPDATER_STATUS.error,
-      progressPercent: null,
-      message,
-    });
+function shouldThrottleUpdateCheck() {
+  const now = Date.now();
+  return now - lastUpdateCheckAt < UPDATE_CHECK_COOLDOWN_MS;
+}
+
+function triggerUpdateCheck(options = {}) {
+  const force = options.force === true;
+  if (!force && shouldThrottleUpdateCheck()) {
+    return;
+  }
+
+  lastUpdateCheckAt = Date.now();
+  void checkForAppUpdates();
+}
+
+function configureUpdaterService() {
+  if (hasConfiguredUpdaterService) {
+    return;
+  }
+  hasConfiguredUpdaterService = true;
+  setUpdaterState({
+    status: UPDATER_STATUS.idle,
+    latestVersion: null,
+    progressPercent: null,
+    releaseUrl: GITHUB_RELEASES_LATEST_URL,
+    message: "Atualizações automáticas desativadas. Novas versões são baixadas pelo GitHub.",
   });
 
   setTimeout(() => {
-    void checkForAppUpdates();
-  }, 2500);
+    triggerUpdateCheck({ force: true });
+  }, UPDATE_CHECK_INITIAL_DELAY_MS);
 }
 
 function getAppIcon() {
@@ -972,18 +1001,13 @@ function registerIpcHandlers() {
     return checkForAppUpdates();
   });
 
-  ipcMain.handle("updater:install-update", async () => {
-    if (!app.isPackaged) {
-      throw new Error("Atualizacoes automaticas disponiveis apenas no app empacotado.");
-    }
-
-    const currentState = getUpdaterStateSnapshot();
-    if (currentState.status !== UPDATER_STATUS.downloaded) {
-      throw new Error("Nenhuma atualizacao pronta para instalacao.");
-    }
-
-    autoUpdater.quitAndInstall();
-    return { status: "installing" };
+  ipcMain.handle("updater:open-release-page", async () => {
+    const releaseUrl = getUpdaterStateSnapshot().releaseUrl || GITHUB_RELEASES_LATEST_URL;
+    await shell.openExternal(releaseUrl);
+    setUpdaterState({
+      message: "Página da release aberta no navegador.",
+    });
+    return { status: "ok", url: releaseUrl };
   });
 }
 
@@ -1078,7 +1102,7 @@ async function bootstrap() {
   await loadSettings();
 
   registerIpcHandlers();
-  configureAutoUpdater();
+  configureUpdaterService();
   protocol.handle("mshcl", (request) => handleImageProtocolRequest(request));
   await createMainWindow();
 }
@@ -1092,7 +1116,10 @@ app.whenReady().then(bootstrap).catch((error) => {
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     void createMainWindow();
+    return;
   }
+
+  triggerUpdateCheck();
 });
 
 app.on("window-all-closed", () => {

@@ -52,7 +52,7 @@ const electronAPI = {
     }),
   getUpdaterState: () => ipcRenderer.invoke("updater:get-state"),
   checkForUpdates: () => ipcRenderer.invoke("updater:check-for-updates"),
-  installUpdate: () => ipcRenderer.invoke("updater:install-update"),
+  openReleasePage: () => ipcRenderer.invoke("updater:open-release-page"),
   onUpdaterStateChange: (listener) => {
     const wrappedListener = (_event, payload) => {
       listener(payload);

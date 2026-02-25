@@ -81,11 +81,13 @@ export interface ElectronUpdaterState {
   currentVersion: string;
   latestVersion: string | null;
   progressPercent: number | null;
+  releaseUrl: string | null;
   message: string;
 }
 
-export interface ElectronUpdaterInstallResult {
-  status: "installing";
+export interface ElectronUpdaterOpenReleaseResult {
+  status: "ok";
+  url: string;
 }
 
 export interface ElectronBridge {
@@ -116,6 +118,6 @@ export interface ElectronBridge {
   ) => Promise<ElectronContinueReadingResult>;
   getUpdaterState: () => Promise<ElectronUpdaterState>;
   checkForUpdates: () => Promise<ElectronUpdaterState>;
-  installUpdate: () => Promise<ElectronUpdaterInstallResult>;
+  openReleasePage: () => Promise<ElectronUpdaterOpenReleaseResult>;
   onUpdaterStateChange: (listener: (payload: ElectronUpdaterState) => void) => () => void;
 }
